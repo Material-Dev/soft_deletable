@@ -39,7 +39,7 @@ module SoftDeletable
     end
 
     block ||= proc do
-      if defined?(Delayed::Job) && defined?(ElasticsearchRemoveFromIndexJob) && respond_to?(:should_index?)
+      if defined?(Delayed::Job) && respond_to?(:should_index?)
         # here we are checking if the record is indexed using method respond_to?(:should_index?)
         # then we are performing `ElasticsearchRemoveFromIndexJob` through delayed job
         # which is responsible for removing record from search index
