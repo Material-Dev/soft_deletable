@@ -31,22 +31,21 @@ module SoftDeletable
   # we are allowing soft_delete! to receive a block of code
   # to be executed once the record is soft deleted.
   # by default - we are performing a delayed job to remove record from index.
-  def soft_delete!(&block)
+  def soft_delete!
     if self.class.ancestors.include?(ActiveRecord::Base)
       update_column('soft_deleted_at', Time.current)
     elsif self.class.included_modules.include?(Mongoid::Document)
       set(soft_deleted_at: Time.now)
     end
 
-    block ||= proc do
-      if defined?(Delayed::Job) && respond_to?(:should_index?)
-        # here we are checking if the record is indexed using method respond_to?(:should_index?)
-        # then we are performing `ElasticsearchRemoveFromIndexJob` through delayed job
-        # which is responsible for removing record from search index
-        Delayed::Job.enqueue(ElasticsearchRemoveFromIndexJob.new(klass: self.class, id: id))
-      end
+    if block_given?
+      yield
+    elsif defined?(Delayed::Job) && respond_to?(:should_index?)
+      # here we have checked if the record is indexed using method respond_to?(:should_index?)
+      # then we are performing `ElasticsearchRemoveFromIndexJob` through delayed job
+      # which is responsible for removing record from search index
+      Delayed::Job.enqueue(ElasticsearchRemoveFromIndexJob.new(klass: self.class, id: id))
     end
-    block.call
 
     self
   end
